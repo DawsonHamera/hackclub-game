@@ -1,16 +1,17 @@
-[gd_scene load_steps=4 format=3 uid="uid://dal02w60hi7gl"]
+[gd_scene load_steps=5 format=3 uid="uid://dal02w60hi7gl"]
 
+[ext_resource type="Script" uid="uid://d4ky7aar0tvdk" path="res://predictive_camera.gd" id="1_0xm2m"]
 [ext_resource type="Script" uid="uid://bu1mdlkuyckjg" path="res://player_movement.gd" id="1_ig7tw"]
+[ext_resource type="PackedScene" uid="uid://0sm6qb7i1dpn" path="res://terrain.glb" id="3_h2yge"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_ig7tw"]
 
-[sub_resource type="PlaneMesh" id="PlaneMesh_h2yge"]
-size = Vector2(20, 20)
-
 [node name="Node3D" type="Node3D"]
 
-[node name="Camera3D" type="Camera3D" parent="."]
+[node name="Camera3D" type="Camera3D" parent="." node_paths=PackedStringArray("target")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.11149, 0.620674, 5.13828)
+script = ExtResource("1_0xm2m")
+target = NodePath("../Player")
 
 [node name="Player" type="Node3D" parent="."]
 script = ExtResource("1_ig7tw")
@@ -21,8 +22,7 @@ mesh = SubResource("CapsuleMesh_ig7tw")
 
 [node name="Test" type="Node3D" parent="."]
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Test"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.27219, 0)
-mesh = SubResource("PlaneMesh_h2yge")
-
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+
+[node name="terrain" parent="." instance=ExtResource("3_h2yge")]
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 1.79653, -8.9848, -0.728885)
