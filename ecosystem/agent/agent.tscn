@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3 uid="uid://bgehlwktco1s5"]
+
+[ext_resource type="Script" uid="uid://doo23e8oislsx" path="res://ecosystem/agent/AgentController.gd" id="1_7of0y"]
+[ext_resource type="ArrayMesh" uid="uid://cvpvnusqbbhvq" path="res://ray.obj" id="2_q6dlq"]
+
+[node name="Agent" type="Node3D"]
+script = ExtResource("1_7of0y")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = ExtResource("2_q6dlq")
+skeleton = NodePath("")
