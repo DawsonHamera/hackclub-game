@@ -1,6 +1,9 @@
 extends Node3D
 
 var chunk_data: ChunkData
+var chunk_debug_color: Color = Color(0,0,1,0.5)
+var show_debug_bounds: bool = false
+
 
 func agent_is_in_chunk(agent: AgentData) -> bool:
 	var chunk_min = chunk_data.position * ChunkData.CHUNK_SIZE
@@ -19,18 +22,23 @@ func update_chunk_agents() ->  void:
 				agents_in_chunk.append(agent)
 		chunk_data.agents = agents_in_chunk
 
+func draw_debug_bounds() -> void:
+	if chunk_data == null or not show_debug_bounds:
+		return
+	DebugDraw3D.draw_box(chunk_data.position * ChunkData.CHUNK_SIZE, Quaternion.IDENTITY, ChunkData.CHUNK_SIZE * Vector3i.ONE, Color.GREEN)
+
 func _ready() -> void:
 	if chunk_data == null:
 		push_error("ChunkController has no ChunkData assigned.")
 		return
-	global_position = chunk_data.position * ChunkData.CHUNK_SIZE
+	global_position = Vector3(chunk_data.position) * ChunkData.CHUNK_SIZE + (Vector3.ONE * ChunkData.CHUNK_SIZE / 2)
 
 	if chunk_data.terrain == true:
-		var terrain_mesh = MeshInstance3D.new()
-		var mesh = preload("res://terrain.glb").duplicate()
-		terrain_mesh.mesh = mesh
-		terrain_mesh.rotation_degrees = Vector3(-90, 0, 0)
-		add_child(terrain_mesh)
+		var mesh_scene = preload("res://sunkencitymap.glb")
+		var terrain = mesh_scene.instantiate()
+		terrain.scale = Vector3(2, 2, 2)
+		add_child(terrain)
 
 func _process(delta: float) -> void:
 	update_chunk_agents()
+	draw_debug_bounds()

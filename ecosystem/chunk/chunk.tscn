@@ -1,9 +1,11 @@
-[gd_scene load_steps=3 format=3 uid="uid://bgfvgsvdfvwww"]
+[gd_scene load_steps=2 format=3 uid="uid://bgfvgsvdfvwww"]
 
 [ext_resource type="Script" uid="uid://bpc40fl18u0a4" path="res://ecosystem/chunk/ChunkController.gd" id="1_fujdm"]
-[ext_resource type="PackedScene" uid="uid://0sm6qb7i1dpn" path="res://terrain.glb" id="2_ks313"]
 
 [node name="Chunk" type="Node3D"]
 script = ExtResource("1_fujdm")
 
-[node name="terrain" parent="." instance=ExtResource("2_ks313")]
+[node name="DebugLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 14.6456, 0)
+text = "Null"
+font_size = 200
