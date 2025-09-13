@@ -27,8 +27,8 @@ func load_surrounding_chunks(center: Vector3i, radius: int) -> void:
 				var terrain = false
 				if chunk_pos.y == 0:
 					terrain = true
-				elif chunk_pos.y < 0:
-					continue
+				# elif chunk_pos.y < 0:
+				# 	continue
 				load_chunk(chunk_pos, terrain)
 
 func clear_unloaded_chunks(center: Vector3i, radius: int) -> void:
@@ -67,7 +67,7 @@ func get_player_chunk() -> Vector3i:
 	else:
 		chunk_z = int(player_pos.z) / ChunkData.CHUNK_SIZE
 
-	print("Player chunk: ", Vector3i(chunk_x, chunk_y, chunk_z), " Player pos: ", player_pos, " Chunk size: ", ChunkData.CHUNK_SIZE)
+	# print("Player chunk: ", Vector3i(chunk_x, chunk_y, chunk_z), " Player pos: ", player_pos, " Chunk size: ", ChunkData.CHUNK_SIZE)
 	return Vector3i(chunk_x, chunk_y, chunk_z)
 
 func debug_chunks(new_player_chunk) -> void:
@@ -91,8 +91,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	var new_player_chunk = get_player_chunk()
 	if new_player_chunk != current_player_chunk:
-		clear_unloaded_chunks(new_player_chunk, 2)
-		load_surrounding_chunks(new_player_chunk, 1)
+		clear_unloaded_chunks(new_player_chunk, 1)
+		load_surrounding_chunks(new_player_chunk, 2)
 
 		debug_chunks(new_player_chunk)
 	current_player_chunk = new_player_chunk

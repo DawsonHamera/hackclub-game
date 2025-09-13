@@ -2,7 +2,7 @@ class_name ChunkData
 extends RefCounted
 
 static var next_id: int = 0
-const CHUNK_SIZE: int = 40
+const CHUNK_SIZE: int = 64
 
 var id: int
 var position: Vector3i

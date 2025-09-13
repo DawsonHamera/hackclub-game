@@ -27,18 +27,24 @@ func draw_debug_bounds() -> void:
 		return
 	DebugDraw3D.draw_box(chunk_data.position * ChunkData.CHUNK_SIZE, Quaternion.IDENTITY, ChunkData.CHUNK_SIZE * Vector3i.ONE, Color.GREEN)
 
+func chunk_file_from_pos(idx: Vector3i) -> String:
+	return "%schunk_%d_%d_%d.fbx" % ["res://chunks/", idx.x, idx.y, idx.z]
+
+func chunk_exists(idx: Vector3i) -> bool:
+	var path = chunk_file_from_pos(idx)
+	return ResourceLoader.exists(path)
+
 func _ready() -> void:
 	if chunk_data == null:
 		push_error("ChunkController has no ChunkData assigned.")
 		return
 	global_position = Vector3(chunk_data.position) * ChunkData.CHUNK_SIZE + (Vector3.ONE * ChunkData.CHUNK_SIZE / 2)
 
-	if chunk_data.terrain == true:
-		var mesh_scene = preload("res://sunkencitymap.glb")
-		var terrain = mesh_scene.instantiate()
-		terrain.scale = Vector3(2, 2, 2)
-		add_child(terrain)
+	var path = chunk_file_from_pos(chunk_data.position)
+	if chunk_exists(chunk_data.position):
+		var scene = ResourceLoader.load(path)
+		add_child(scene.instantiate())
 
 func _process(delta: float) -> void:
 	update_chunk_agents()
-	draw_debug_bounds()
+	# draw_debug_bounds()
