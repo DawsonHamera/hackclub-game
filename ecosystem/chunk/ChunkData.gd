@@ -7,11 +7,12 @@ const CHUNK_SIZE: int = 64
 var id: int
 var position: Vector3i
 var agents: Array = []
-var terrain: bool = false
+var terrain: PackedScene = null
 var last_accessed: float = 0.0
+var scene_instance: Node3D = preload("res://ecosystem/chunk/chunk.tscn").instantiate()
 
-func _init(pos: Vector3i = Vector3i.ZERO):
+func _init(pos: Vector3i = Vector3i.ZERO) -> void:
     id = next_id
     next_id += 1
-    position = pos
-
+    position = pos 
+    scene_instance.chunk_data = self
