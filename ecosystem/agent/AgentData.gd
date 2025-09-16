@@ -1,7 +1,7 @@
 class_name AgentData
 
 static var next_id: int = 0
-static var agents: Array[AgentData] = []
+static var agents: Dictionary = {}
 
 var id: int
 var species: String
@@ -16,6 +16,8 @@ var energy: float = 100.0
 # Behavior biases
 var waypoints: Array = []
 
-func _init():
+func _init(pos: Vector3 = Vector3.ZERO) -> void:
     id = next_id
     next_id += 1
+    agents[id] = self
+    position = pos

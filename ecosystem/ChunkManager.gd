@@ -12,16 +12,24 @@ var semaphore: Semaphore
 var thread: Thread
 var exit_render_thread: bool = false
 
+var first_frame: bool = true
 
 func chunk_terrain_exists(idx: Vector3i) -> bool:
 	var path = chunk_file_from_pos(idx)
+	if ResourceLoader.exists(path):
+		print("Chunk terrain exists at: ", idx)
 	return ResourceLoader.exists(path)
 
 func chunk_file_from_pos(idx: Vector3i) -> String:
-	return "%schunk_%d_%d_%d.fbx" % ["res://chunks/", idx.x, idx.y, idx.z]
+	# var offset = Vector3i(5, 3, -3)  # For debugging, moves chunk around so I don't have to move player
+	# var offset = Vector3i(5,-13, -3)
+	var offset = Vector3i(5,4,-20)
+	return "%schunk_%d_%d_%d.fbx" % ["res://chunks/", idx.x + offset.x, idx.y + offset.y, idx.z + offset.z]
 
 
 func load_chunk(chunkData: ChunkData) -> PackedScene:
+	if chunkData == null:
+		return null
 	if chunk_terrain_exists(chunkData.position):
 		var path = chunk_file_from_pos(chunkData.position)
 		var terrain = ResourceLoader.load(path)
@@ -50,6 +58,29 @@ func load_chunks_thread() -> void:
 			chunk_render_queue.append(chunkData)
 			chunk_load_queue.erase(chunkData)
 		mutex.unlock()
+
+
+func scan_chunk_for_agents(chunk_pos: Vector3i) -> Array:
+	var agents_in_chunk = []
+	for agent in AgentData.agents.values():
+		var chunk_min = chunk_pos * ChunkData.CHUNK_SIZE
+		var chunk_max = chunk_min + Vector3i.ONE * ChunkData.CHUNK_SIZE
+
+		if (agent.position.x >= chunk_min.x and agent.position.x < chunk_max.x and
+			agent.position.y >= chunk_min.y and agent.position.y < chunk_max.y and
+			agent.position.z >= chunk_min.z and agent.position.z < chunk_max.z):
+			agents_in_chunk.append(agent)
+	return agents_in_chunk
+
+func update_agents_in_chunks() -> void:
+	for chunk_pos in loaded_chunks.keys():
+		var chunk = loaded_chunks[chunk_pos]
+		if chunk and is_instance_valid(chunk):
+			var chunk_data = chunk.chunk_data
+			if chunk_data:
+				chunk_data.agents = scan_chunk_for_agents(chunk_pos)
+				AgentManager.request_spawn_agents_in_chunk(chunk_data.id, chunk_data.agents)
+
 
 
 func create_chunk(position: Vector3i, terrain: bool) -> void:
@@ -151,13 +182,16 @@ func render_chunks() -> void:
 func _process(delta: float) -> void:
 	player_chunk = get_player_chunk()
 
-	if player_chunk != player_chunk_prev:
+	if player_chunk != player_chunk_prev or first_frame:
+		first_frame = false
 		mutex.lock()
 		create_surrounding_chunks(player_chunk, 2)
-		clear_unloaded_chunks(player_chunk, 1)
+		# clear_unloaded_chunks(player_chunk, 1)
 		render_chunks()
 		# debug_chunks()
 		mutex.unlock()
+
+	update_agents_in_chunks()
 
 	player_chunk_prev = player_chunk
 

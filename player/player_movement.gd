@@ -12,15 +12,16 @@ extends Node3D
 
 var velocity: Vector3 = Vector3.ZERO
 var pitch: float = 0.0
-var yaw: float = 0.0
+var yaw: float = 180.0
 
 var mouse_captured = true
 
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
+
 func _input(event):
-	if event is InputEventMouseMotion:
+	if event is InputEventMouseMotion and mouse_captured:
 		yaw -= event.relative.x * mouse_sensitivity
 		pitch -= event.relative.y * mouse_sensitivity
 

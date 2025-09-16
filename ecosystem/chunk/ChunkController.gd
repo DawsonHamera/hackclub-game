@@ -4,6 +4,8 @@ var chunk_data: ChunkData
 var chunk_debug_color: Color = Color(0,0,1,0.5)
 var show_debug_bounds: bool = false
 
+@onready var label: Label3D = $DebugLabel
+
 func agent_is_in_chunk(agent: AgentData) -> bool:
 	var chunk_min = chunk_data.position * ChunkData.CHUNK_SIZE
 	var chunk_max = chunk_min + Vector3i.ONE * ChunkData.CHUNK_SIZE
@@ -30,6 +32,7 @@ func _ready() -> void:
 	if chunk_data == null:
 		push_error("ChunkController has no ChunkData assigned.")
 		return
+	label.text = "Chunk: %s" % str(chunk_data.position)
 	global_position = Vector3(chunk_data.position) * ChunkData.CHUNK_SIZE + (Vector3.ONE * ChunkData.CHUNK_SIZE / 2)
 
 func _process(delta: float) -> void:
