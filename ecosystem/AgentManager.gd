@@ -8,7 +8,7 @@ func request_spawn_agents_in_chunk(chunk_id: int, agents_array: Array) -> void:
 
 
 func _ready() -> void:
-	
+	print("AgentManager ready")
 	var num_agents = 50
 	var area_size = 200.0
 	for i in range(num_agents):
@@ -18,6 +18,7 @@ func _ready() -> void:
 			randf_range(-area_size, area_size),
 		) - Vector3(0, 80, -40)  # Start above ground
 		var agent = AgentData.new(pos)
+	print("Created %d agents" % num_agents)
 
 
 func _process(delta: float) -> void:
@@ -33,6 +34,7 @@ func _process(delta: float) -> void:
 				agent_instance.agent_data = agent
 				scene_instance.add_child(agent_instance)
 				loaded_agents.append(agent.id)
+				print("Spawned agent %d in chunk %d" % [agent.id, chunk_id])
 		else:
 			push_error("Chunk with ID %d not found for spawning agents." % chunk_id)       
 		
