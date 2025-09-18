@@ -21,6 +21,11 @@ func _ready():
 
 
 func _input(event):
+	if event is InputEventMouseButton:
+		if not mouse_captured:
+			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+			mouse_captured = true
+
 	if event is InputEventMouseMotion and mouse_captured:
 		yaw -= event.relative.x * mouse_sensitivity
 		pitch -= event.relative.y * mouse_sensitivity

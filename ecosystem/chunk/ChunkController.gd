@@ -24,11 +24,12 @@ func update_chunk_agents() ->  void:
 		chunk_data.agents = agents_in_chunk
 
 func draw_debug_bounds() -> void:
-	if chunk_data == null or not show_debug_bounds:
-		return
+	# if chunk_data == null or not show_debug_bounds:
+	# 	return
 	DebugDraw3D.draw_box(chunk_data.position * ChunkData.CHUNK_SIZE, Quaternion.IDENTITY, ChunkData.CHUNK_SIZE * Vector3i.ONE, Color.GREEN)
 
 func _ready() -> void:
+	randomize()
 	if chunk_data == null:
 		push_error("ChunkController has no ChunkData assigned.")
 		return

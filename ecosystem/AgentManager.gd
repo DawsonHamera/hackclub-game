@@ -9,7 +9,7 @@ func request_spawn_agents_in_chunk(chunk_id: int, agents_array: Array) -> void:
 
 func _ready() -> void:
 	
-	var num_agents = 100
+	var num_agents = 50
 	var area_size = 200.0
 	for i in range(num_agents):
 		var pos = Vector3(

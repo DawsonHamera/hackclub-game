@@ -4,6 +4,8 @@ var loaded_chunks: Dictionary = {}
 var chunk_load_queue: Array = []
 var chunk_render_queue: Array = []
 
+var resources: Dictionary = {}
+
 var player_chunk_prev: Vector3i = Vector3i.ZERO
 var player_chunk: Vector3i = Vector3i.ZERO
 
@@ -14,28 +16,22 @@ var exit_render_thread: bool = false
 
 var first_frame: bool = true
 
-func chunk_terrain_exists(idx: Vector3i) -> bool:
-	var path = chunk_file_from_pos(idx)
-	if ResourceLoader.exists(path):
-		print("Chunk terrain exists at: ", idx)
-	return ResourceLoader.exists(path)
-
-func chunk_file_from_pos(idx: Vector3i) -> String:
-	# var offset = Vector3i(5, 3, -3)  # For debugging, moves chunk around so I don't have to move player
-	# var offset = Vector3i(5,-13, -3)
-	var offset = Vector3i(5,4,-20)
-	return "%schunk_%d_%d_%d.fbx" % ["res://chunks/", idx.x + offset.x, idx.y + offset.y, idx.z + offset.z]
-
-
-func load_chunk(chunkData: ChunkData) -> PackedScene:
+func load_chunk_resources(chunkData: ChunkData) -> Dictionary:
 	if chunkData == null:
-		return null
-	if chunk_terrain_exists(chunkData.position):
-		var path = chunk_file_from_pos(chunkData.position)
-		var terrain = ResourceLoader.load(path)
-		return terrain
-	else:
-		return null
+		return {}
+
+	var resources_to_load = []
+	for obstacle in chunkData.obstacles:
+		if obstacle.model_path != "" and ResourceLoader.exists(obstacle.model_path) and not obstacle.model_path in resources_to_load and not obstacle.model_path in resources:
+			resources_to_load.append(obstacle.model_path)
+
+	# print("Loading resources for chunk ID %d: %s" % [chunkData.id, str(resources_to_load)])
+	if resources_to_load.size() > 0:
+		for resource_path in resources_to_load:
+			resources[resource_path] = ResourceLoader.load(resource_path)
+
+			print("Loaded new resource for chunk ID %d: %s - %s" % [chunkData.id, resource_path, str(resources[resource_path])])
+	return resources
 
 
 func load_chunks_thread() -> void:
@@ -51,10 +47,7 @@ func load_chunks_thread() -> void:
 
 		for chunkData in chunk_load_queue_local:
 			mutex.lock()
-			var terrain = load_chunk(chunkData)
-			if terrain:
-				chunkData.terrain = terrain		
-			
+			load_chunk_resources(chunkData)
 			chunk_render_queue.append(chunkData)
 			chunk_load_queue.erase(chunkData)
 		mutex.unlock()
@@ -170,14 +163,27 @@ func _ready() -> void:
 	create_surrounding_chunks(get_player_chunk(), 2)
 	
 
-func render_chunks() -> void:
-	for chunkData in chunk_render_queue:
-		var terrain = chunkData.terrain
-		if terrain:
-			chunkData.scene_instance.add_child(terrain.instantiate())
-			chunk_render_queue.erase(chunkData)
+func transform_relative_to_chunk(pos: Vector3i, local_pos: Vector3) -> Vector3:
+	return Vector3(
+		local_pos.x + pos.x * ChunkData.CHUNK_SIZE,
+		local_pos.y + pos.y * ChunkData.CHUNK_SIZE,
+		local_pos.z + pos.z * ChunkData.CHUNK_SIZE,
+	)
 
+func render_chunks() -> void:
+	var processed_chunks = []
+	for chunkData in chunk_render_queue:
+		for obstacle in chunkData.obstacles:
+			var m = resources[obstacle.model_path].instantiate() if obstacle.model_path in resources else null
+			m.position = obstacle.position
+			# m.scale = obstacle.size
+			chunkData.scene_instance.add_child(m)
+			print("Added obstacle ID %d to chunk ID %d at position %s" % [obstacle.id, chunkData.id, str(obstacle.position)])
 		loaded_chunks[chunkData.position] = chunkData.scene_instance
+		processed_chunks.append(chunkData)
+
+	for chunk in processed_chunks:
+		chunk_render_queue.erase(chunk)
 
 func _process(delta: float) -> void:
 	player_chunk = get_player_chunk()
