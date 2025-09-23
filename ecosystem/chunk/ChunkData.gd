@@ -22,4 +22,4 @@ func _init(pos: Vector3i = Vector3i.ZERO) -> void:
 	position = pos 
 	scene_instance.chunk_data = self
 	chunks[id] = self
-	# obstacles.append(Obstacle.new(Vector3( randf(), randf(),  randf()), Vector3(1, 1, 1), "res://models/grass.glb"))
+	obstacles.append(Obstacle.new(Vector3( randf(), randf(),  randf()), Vector3(1, 1, 1), "res://models/grass.glb"))

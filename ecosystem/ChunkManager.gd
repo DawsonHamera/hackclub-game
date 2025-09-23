@@ -16,6 +16,8 @@ var exit_render_thread: bool = false
 
 var first_frame: bool = true
 
+var prev_chunk_agents: Dictionary = {}
+
 func load_chunk_resources(chunkData: ChunkData) -> Dictionary:
 	if chunkData == null:
 		return {}
@@ -35,6 +37,7 @@ func load_chunk_resources(chunkData: ChunkData) -> Dictionary:
 
 
 func load_chunks_thread() -> void:
+	print("Chunk loading thread running...")
 	while true:
 		semaphore.wait()
 		mutex.lock()
@@ -52,27 +55,25 @@ func load_chunks_thread() -> void:
 			chunk_load_queue.erase(chunkData)
 		mutex.unlock()
 
-
-func scan_chunk_for_agents(chunk_pos: Vector3i) -> Array:
-	var agents_in_chunk = []
-	for agent in AgentData.agents.values():
-		var chunk_min = chunk_pos * ChunkData.CHUNK_SIZE
-		var chunk_max = chunk_min + Vector3i.ONE * ChunkData.CHUNK_SIZE
-
-		if (agent.position.x >= chunk_min.x and agent.position.x < chunk_max.x and
-			agent.position.y >= chunk_min.y and agent.position.y < chunk_max.y and
-			agent.position.z >= chunk_min.z and agent.position.z < chunk_max.z):
-			agents_in_chunk.append(agent)
-	return agents_in_chunk
-
 func update_agents_in_chunks() -> void:
 	for chunk_pos in loaded_chunks.keys():
 		var chunk = loaded_chunks[chunk_pos]
 		if chunk and is_instance_valid(chunk):
 			var chunk_data = chunk.chunk_data
 			if chunk_data:
-				chunk_data.agents = scan_chunk_for_agents(chunk_pos)
-				AgentManager.request_spawn_agents_in_chunk(chunk_data.id, chunk_data.agents)
+				var prev_agents = prev_chunk_agents.get(chunk_pos, [])
+				
+				if chunk_data.agents > prev_agents:
+					AgentManager.request_spawn_agents_in_chunk(chunk_data.id, chunk_data.agents)
+
+				elif chunk_data.agents < prev_agents:
+					for agent in prev_agents:
+						if not agent in chunk_data.agents:
+							AgentManager.request_despawn_agent(agent.id)
+
+				prev_chunk_agents[chunk_pos] = chunk.chunk_data.agents
+		else:
+			print("Invalid chunk at pos: ", chunk_pos)
 
 
 
@@ -86,32 +87,55 @@ func create_surrounding_chunks(center: Vector3i, radius: int) -> void:
 	for x in range(-radius, radius + 1):
 		for y in range(-radius, radius + 1):
 			for z in range(-radius, radius + 1):
-				if loaded_chunks.has(center + Vector3i(x, y, z)):
-					continue
 				var chunk_pos = center + Vector3i(x, y, z)
+
+				if loaded_chunks.has(chunk_pos):
+					continue
+				
+				# Check load queue
+				var already_queued = false
+				for queued_chunk in chunk_load_queue:
+					if queued_chunk.position == chunk_pos:
+						already_queued = true
+						break
+					
+				# Check render queue
+				if not already_queued:
+					for rendered_chunk in chunk_render_queue:
+						if rendered_chunk.position == chunk_pos:
+							already_queued = true
+							break
+				
+				if already_queued:
+					continue 
+
 				var terrain = false
 				if chunk_pos.y == 0:
 					terrain = true
-				# elif chunk_pos.y < 0:
-				# 	continue
 				create_chunk(chunk_pos, terrain)
 
 func clear_unloaded_chunks(center: Vector3i, radius: int) -> void:
-	for i in loaded_chunks.keys():
-		if i.distance_to(center) > radius:
-			# print("Removing chunk at: ", i)
-			var chunk = loaded_chunks[i]
-			if chunk and chunk.get_parent() == self:
-				remove_child(chunk)
-				chunk.queue_free()
-			loaded_chunks.erase(i)
-			
-		
+	var chunks_to_remove = []
+
+	for chunk_pos in loaded_chunks.keys():
+		var distance = max(abs(chunk_pos.x - center.x), abs(chunk_pos.y - center.y), abs(chunk_pos.z - center.z))
+		if distance > radius:
+			chunks_to_remove.append(chunk_pos)
+
+	for chunk_pos in chunks_to_remove:
+		var chunk = loaded_chunks[chunk_pos]
+		if chunk and chunk.get_parent() == self:
+			remove_child(chunk)
+			chunk.queue_free()
+		for agent in chunk.chunk_data.agents:
+			AgentManager.request_despawn_agent(agent.id)
+		loaded_chunks.erase(chunk_pos)
+
 
 func get_player_chunk() -> Vector3i:
 	var player = get_node("/root/Main/Player")
 	if player == null:
-		return Vector3i.ZERO
+		return Vector3.ZERO
 	var player_pos = player.global_transform.origin
 
 	var chunk_x: int
@@ -159,8 +183,8 @@ func _ready() -> void:
 	thread.start(load_chunks_thread)
 
 	print("ChunkManager rendering thread started")
-
-	create_surrounding_chunks(get_player_chunk(), 2)
+	create_surrounding_chunks(player_chunk, 1)
+	print("Initial chunks created around player at: ", player_chunk)
 	
 
 func transform_relative_to_chunk(pos: Vector3i, local_pos: Vector3) -> Vector3:
@@ -172,16 +196,18 @@ func transform_relative_to_chunk(pos: Vector3i, local_pos: Vector3) -> Vector3:
 
 func render_chunks() -> void:
 	var processed_chunks = []
+	var total_obstacles = 0
 	for chunkData in chunk_render_queue:
 		for obstacle in chunkData.obstacles:
 			var m = resources[obstacle.model_path].instantiate() if obstacle.model_path in resources else null
 			m.position = obstacle.position
 			# m.scale = obstacle.size
 			chunkData.scene_instance.add_child(m)
-			print("Added obstacle ID %d to chunk ID %d at position %s" % [obstacle.id, chunkData.id, str(obstacle.position)])
+			total_obstacles += 1
 		loaded_chunks[chunkData.position] = chunkData.scene_instance
 		processed_chunks.append(chunkData)
-
+	
+	# print("Rendered %d chunks with a total of %d obstacles." % [processed_chunks.size(), total_obstacles])
 	for chunk in processed_chunks:
 		chunk_render_queue.erase(chunk)
 
@@ -189,13 +215,16 @@ func _process(delta: float) -> void:
 	player_chunk = get_player_chunk()
 
 	if player_chunk != player_chunk_prev or first_frame:
+		print("first frame - calling render_chunks" if first_frame else "player moved - calling render_chunks")
 		first_frame = false
 		mutex.lock()
-		create_surrounding_chunks(player_chunk, 2)
-		# clear_unloaded_chunks(player_chunk, 1)
-		render_chunks()
+		# print("Clearing unloaded chunks...")
+		clear_unloaded_chunks(player_chunk, 1)
+		# print("Creating surrounding chunks...")
+		create_surrounding_chunks(player_chunk, 1)
 		# debug_chunks()
 		mutex.unlock()
+	render_chunks()
 
 	update_agents_in_chunks()
 

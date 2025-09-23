@@ -18,7 +18,7 @@ func update_chunk_agents() ->  void:
 		if chunk_data == null:
 			return
 		var agents_in_chunk = []
-		for agent in chunk_data.agents:
+		for agent in AgentData.agents.values():
 			if agent_is_in_chunk(agent):
 				agents_in_chunk.append(agent)
 		chunk_data.agents = agents_in_chunk

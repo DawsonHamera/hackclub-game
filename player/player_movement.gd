@@ -16,8 +16,8 @@ var yaw: float = 180.0
 
 var mouse_captured = true
 
-func _ready():
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+# func _ready():
+# 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 
 func _input(event):
